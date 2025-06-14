@@ -85,16 +85,25 @@
   <body>
     <div id="gameContainer">
       <canvas id="gameCanvas" width="800" height="600"></canvas>
-      <div id="ui">⌛️생존시간: <span id="timer">0</span>초</div>
+      <div id="ui">
+        생존시간: <span id="timer">0</span>초<br />
+        파괴한 운석: <span id="score">0</span>개<br />
+        무기레벨: <span id="weaponLevel">1</span>단계
+      </div>
       <div id="instructions">
-        <h2>🛸 UFO 피하기 게임 🛸</h2>
-        <p><strong>PC:</strong> ← → 방향키로 이동</p>
-        <p><strong>모바일:</strong> 화면 좌우 터치로 이동</p>
+        <h2>🛸 UFO 슈팅 게임 🛸</h2>
+        <p><strong>PC:</strong> ← → 방향키로 이동, 스페이스바로 미사일 발사</p>
+        <p>
+          <strong>모바일:</strong> 화면 좌우 터치로 이동, 화면 상단 터치로
+          미사일 발사
+        </p>
         <p class="blink">스페이스바 또는 터치로 시작!</p>
       </div>
       <div id="gameOver">
         <h2>💥 GAME OVER 💥</h2>
         <p>생존시간: <span id="finalTime">0</span>초</p>
+        <p>파괴한 운석: <span id="finalScore">0</span>개</p>
+        <p>최고 무기레벨: <span id="finalWeaponLevel">1</span>단계</p>
         <p class="blink">스페이스바 또는 터치로 재시작!</p>
       </div>
     </div>
@@ -103,13 +112,21 @@
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
       const timerElement = document.getElementById("timer");
+      const scoreElement = document.getElementById("score");
+      const weaponLevelElement = document.getElementById("weaponLevel");
       const instructionsElement = document.getElementById("instructions");
       const gameOverElement = document.getElementById("gameOver");
       const finalTimeElement = document.getElementById("finalTime");
+      const finalScoreElement = document.getElementById("finalScore");
+      const finalWeaponLevelElement =
+        document.getElementById("finalWeaponLevel");
 
       let gameState = "waiting"; // 'waiting', 'playing', 'gameOver'
       let gameStartTime = 0;
       let survivalTime = 0;
+      let score = 0;
+      let weaponLevel = 1;
+      let lastItemSpawnTime = 0;
       let lastTime = 0;
 
       // UFO 설정
@@ -124,6 +141,12 @@
       // 운석 배열
       let meteors = [];
 
+      // 미사일 배열
+      let missiles = [];
+
+      // 아이템 배열
+      let items = [];
+
       // UFO 도트맵 (반원형)
       const ufoPixelMap = [
         [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
@@ -133,6 +156,127 @@
         [1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1], // 2는 라이트
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
       ];
+
+      // 미사일 생성 (무기 레벨에 따라 다른 패턴)
+      function createMissiles() {
+        const missiles = [];
+        const baseX = ufo.x;
+        const baseY = ufo.y - 10;
+
+        switch (weaponLevel) {
+          case 1: // 기본: 1발
+            missiles.push({
+              x: baseX,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            break;
+          case 2: // 2단계: 2발 (약간 벌어짐)
+            missiles.push({
+              x: baseX - 5,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            missiles.push({
+              x: baseX + 5,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            break;
+          case 3: // 3단계: 3발 (더 벌어짐)
+            missiles.push({
+              x: baseX,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            missiles.push({
+              x: baseX - 8,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            missiles.push({
+              x: baseX + 8,
+              y: baseY,
+              width: 3,
+              height: 8,
+              speed: 8,
+              type: "normal",
+            });
+            break;
+          case 4: // 4단계: 레이저 (더 강력)
+            missiles.push({
+              x: baseX - 10,
+              y: baseY,
+              width: 5,
+              height: 12,
+              speed: 10,
+              type: "laser",
+            });
+            missiles.push({
+              x: baseX + 10,
+              y: baseY,
+              width: 5,
+              height: 12,
+              speed: 10,
+              type: "laser",
+            });
+            break;
+          case 5: // 5단계: 플라즈마 (최강)
+            missiles.push({
+              x: baseX,
+              y: baseY,
+              width: 8,
+              height: 15,
+              speed: 12,
+              type: "plasma",
+            });
+            missiles.push({
+              x: baseX - 15,
+              y: baseY,
+              width: 5,
+              height: 12,
+              speed: 10,
+              type: "laser",
+            });
+            missiles.push({
+              x: baseX + 15,
+              y: baseY,
+              width: 5,
+              height: 12,
+              speed: 10,
+              type: "laser",
+            });
+            break;
+        }
+
+        return missiles;
+      }
+
+      // 아이템 생성
+      function createItem() {
+        return {
+          x: Math.random() * (canvas.width - 20) + 10,
+          y: -20,
+          width: 16,
+          height: 16,
+          speed: 2,
+        };
+      }
 
       // 운석 생성
       function createMeteor() {
@@ -175,6 +319,143 @@
         }
       }
 
+      // 미사일 그리기 (타입별로 다르게)
+      function drawMissile(missile) {
+        const pixelSize = 1;
+
+        if (missile.type === "plasma") {
+          // 플라즈마: 보라색/핑크
+          ctx.fillStyle = "#ff00ff";
+          const plasmaPattern = [
+            [0, 0, 1, 1, 1, 1, 0, 0],
+            [0, 1, 1, 2, 2, 1, 1, 0],
+            [1, 1, 2, 2, 2, 2, 1, 1],
+            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 1, 2, 2, 2, 2, 1, 1],
+            [0, 1, 1, 2, 2, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 0, 0],
+          ];
+
+          for (let row = 0; row < plasmaPattern.length; row++) {
+            for (let col = 0; col < plasmaPattern[row].length; col++) {
+              if (plasmaPattern[row][col] === 1) {
+                ctx.fillStyle = "#ff00ff";
+                ctx.fillRect(
+                  missile.x + col * pixelSize,
+                  missile.y + row * pixelSize,
+                  pixelSize,
+                  pixelSize
+                );
+              } else if (plasmaPattern[row][col] === 2) {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(
+                  missile.x + col * pixelSize,
+                  missile.y + row * pixelSize,
+                  pixelSize,
+                  pixelSize
+                );
+              }
+            }
+          }
+        } else if (missile.type === "laser") {
+          // 레이저: 빨간색
+          ctx.fillStyle = "#ff0000";
+          const laserPattern = [
+            [0, 0, 1, 0, 0],
+            [0, 1, 2, 1, 0],
+            [1, 2, 2, 2, 1],
+            [1, 2, 2, 2, 1],
+            [1, 2, 2, 2, 1],
+            [0, 1, 2, 1, 0],
+            [0, 0, 1, 0, 0],
+          ];
+
+          for (let row = 0; row < laserPattern.length; row++) {
+            for (let col = 0; col < laserPattern[row].length; col++) {
+              if (laserPattern[row][col] === 1) {
+                ctx.fillStyle = "#ff0000";
+                ctx.fillRect(
+                  missile.x + col * pixelSize,
+                  missile.y + row * pixelSize,
+                  pixelSize,
+                  pixelSize
+                );
+              } else if (laserPattern[row][col] === 2) {
+                ctx.fillStyle = "#ffff00";
+                ctx.fillRect(
+                  missile.x + col * pixelSize,
+                  missile.y + row * pixelSize,
+                  pixelSize,
+                  pixelSize
+                );
+              }
+            }
+          }
+        } else {
+          // 일반 미사일: 시안색
+          ctx.fillStyle = "#00ffff";
+          const missilePattern = [
+            [0, 1, 0],
+            [1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],
+            [0, 1, 0],
+          ];
+
+          for (let row = 0; row < missilePattern.length; row++) {
+            for (let col = 0; col < missilePattern[row].length; col++) {
+              if (missilePattern[row][col] === 1) {
+                ctx.fillRect(
+                  missile.x + col * pixelSize,
+                  missile.y + row * pixelSize,
+                  pixelSize,
+                  pixelSize
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // 아이템 그리기
+      function drawItem(item) {
+        const pixelSize = 2;
+        // 파워업 아이템: 초록색 P 모양
+        const itemPattern = [
+          [1, 1, 1, 1, 0, 0, 0, 0],
+          [1, 0, 0, 0, 1, 0, 0, 0],
+          [1, 0, 0, 0, 1, 0, 0, 0],
+          [1, 1, 1, 1, 0, 0, 0, 0],
+          [1, 0, 0, 0, 0, 0, 0, 0],
+          [1, 0, 0, 0, 0, 0, 0, 0],
+          [1, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+
+        ctx.fillStyle = "#00ff00";
+        for (let row = 0; row < itemPattern.length; row++) {
+          for (let col = 0; col < itemPattern[row].length; col++) {
+            if (itemPattern[row][col] === 1) {
+              ctx.fillRect(
+                item.x + col * pixelSize,
+                item.y + row * pixelSize,
+                pixelSize,
+                pixelSize
+              );
+            }
+          }
+        }
+
+        // 반짝이는 효과
+        if (Math.floor(lastTime / 200) % 2 === 0) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(item.x + 2, item.y + 2, 2, 2);
+          ctx.fillRect(item.x + 12, item.y + 6, 2, 2);
+        }
+      }
+
       // 운석 그리기 (도트 스타일)
       function drawMeteor(meteor) {
         const pixelSize = 2;
@@ -197,6 +478,26 @@
                 pixelSize,
                 pixelSize
               );
+            }
+          }
+        }
+      }
+
+      // 폭발 효과 그리기
+      function drawExplosion(x, y) {
+        ctx.fillStyle = "#ffff00";
+        const explosionPattern = [
+          [0, 0, 1, 0, 0],
+          [0, 1, 1, 1, 0],
+          [1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 0],
+          [0, 0, 1, 0, 0],
+        ];
+
+        for (let row = 0; row < explosionPattern.length; row++) {
+          for (let col = 0; col < explosionPattern[row].length; col++) {
+            if (explosionPattern[row][col] === 1) {
+              ctx.fillRect(x + col * 2, y + row * 2, 2, 2);
             }
           }
         }
@@ -229,12 +530,78 @@
         // 생존 시간 업데이트
         survivalTime = Math.floor((currentTime - gameStartTime) / 1000);
         timerElement.textContent = survivalTime;
+        scoreElement.textContent = score;
+        weaponLevelElement.textContent = weaponLevel;
+
+        // 아이템 생성 (비정규적 시간, 5-15초 간격)
+        if (currentTime - lastItemSpawnTime > 5000 + Math.random() * 10000) {
+          if (weaponLevel < 5) {
+            // 최대 레벨이 아닐 때만 생성
+            items.push(createItem());
+            lastItemSpawnTime = currentTime;
+          }
+        }
 
         // 운석 생성 (난이도 증가)
         const meteorSpawnRate = Math.max(0.02, 0.05 - survivalTime * 0.001);
         if (Math.random() < meteorSpawnRate) {
           meteors.push(createMeteor());
         }
+
+        // 아이템 업데이트
+        items.forEach((item, itemIndex) => {
+          item.y += item.speed;
+
+          // 화면 밖으로 나간 아이템 제거
+          if (item.y > canvas.height) {
+            items.splice(itemIndex, 1);
+            return;
+          }
+
+          // UFO와 아이템 충돌 체크
+          if (checkCollision(ufo, item)) {
+            items.splice(itemIndex, 1);
+            if (weaponLevel < 5) {
+              weaponLevel++;
+              // 레벨업 효과음 대신 시각적 효과
+              setTimeout(() => {
+                ctx.fillStyle = "#00ff00";
+                ctx.font = "20px Courier New";
+                ctx.fillText(
+                  "POWER UP!",
+                  canvas.width / 2 - 50,
+                  canvas.height / 2
+                );
+              }, 0);
+            }
+          }
+        });
+
+        // 미사일 업데이트
+        missiles.forEach((missile, missileIndex) => {
+          missile.y -= missile.speed;
+
+          // 화면 밖으로 나간 미사일 제거
+          if (missile.y < -10) {
+            missiles.splice(missileIndex, 1);
+            return;
+          }
+
+          // 미사일과 운석 충돌 체크
+          meteors.forEach((meteor, meteorIndex) => {
+            if (checkCollision(missile, meteor)) {
+              // 폭발 효과
+              setTimeout(() => drawExplosion(meteor.x, meteor.y), 0);
+
+              // 플라즈마는 관통, 다른 미사일은 소멸
+              if (missile.type !== "plasma") {
+                missiles.splice(missileIndex, 1);
+              }
+              meteors.splice(meteorIndex, 1);
+              score++;
+            }
+          });
+        });
 
         // 운석 업데이트
         meteors.forEach((meteor, index) => {
@@ -249,6 +616,8 @@
           if (checkCollision(ufo, meteor)) {
             gameState = "gameOver";
             finalTimeElement.textContent = survivalTime;
+            finalScoreElement.textContent = score;
+            finalWeaponLevelElement.textContent = weaponLevel;
             gameOverElement.style.display = "block";
           }
         });
@@ -265,6 +634,12 @@
         if (gameState === "playing") {
           // UFO 그리기
           drawUFO();
+
+          // 미사일들 그리기
+          missiles.forEach(drawMissile);
+
+          // 아이템들 그리기
+          items.forEach(drawItem);
 
           // 운석들 그리기
           meteors.forEach(drawMeteor);
@@ -283,8 +658,13 @@
       function startGame() {
         gameState = "playing";
         gameStartTime = performance.now();
+        lastItemSpawnTime = performance.now();
         survivalTime = 0;
+        score = 0;
+        weaponLevel = 1;
         meteors = [];
+        missiles = [];
+        items = [];
         ufo.x = canvas.width / 2;
         instructionsElement.style.display = "none";
         gameOverElement.style.display = "none";
@@ -303,6 +683,10 @@
           e.preventDefault();
           if (gameState === "waiting" || gameState === "gameOver") {
             startGame();
+          } else if (gameState === "playing") {
+            // 미사일 발사 (무기 레벨에 따라 여러 발)
+            const newMissiles = createMissiles();
+            missiles.push(...newMissiles);
           }
         }
 
@@ -328,11 +712,19 @@
           const touch = e.touches[0];
           const rect = canvas.getBoundingClientRect();
           const touchX = touch.clientX - rect.left;
+          const touchY = touch.clientY - rect.top;
 
-          if (touchX < canvas.width / 2) {
-            ufo.x = Math.max(20, ufo.x - ufo.speed * 2);
+          // 화면 상단 1/3 터치시 미사일 발사
+          if (touchY < canvas.height / 3) {
+            const newMissiles = createMissiles();
+            missiles.push(...newMissiles);
           } else {
-            ufo.x = Math.min(canvas.width - 20, ufo.x + ufo.speed * 2);
+            // 하단 터치시 이동
+            if (touchX < canvas.width / 2) {
+              ufo.x = Math.max(20, ufo.x - ufo.speed * 2);
+            } else {
+              ufo.x = Math.min(canvas.width - 20, ufo.x + ufo.speed * 2);
+            }
           }
         }
       });
