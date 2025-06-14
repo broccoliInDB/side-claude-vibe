@@ -324,98 +324,76 @@
         const pixelSize = 1;
 
         if (missile.type === "plasma") {
-          // 플라즈마: 보라색/핑크
-          ctx.fillStyle = "#ff00ff";
-          const plasmaPattern = [
-            [0, 0, 1, 1, 1, 1, 0, 0],
-            [0, 1, 1, 2, 2, 1, 1, 0],
-            [1, 1, 2, 2, 2, 2, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 1, 2, 2, 2, 2, 1, 1],
-            [0, 1, 1, 2, 2, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 0, 0],
-          ];
+          // 플라즈마: 보라색/핑크 그라데이션 효과
+          const gradient = ctx.createRadialGradient(
+            missile.x + 4,
+            missile.y + 4,
+            0,
+            missile.x + 4,
+            missile.y + 4,
+            8
+          );
+          gradient.addColorStop(0, "#ff00ff");
+          gradient.addColorStop(0.5, "#ff66ff");
+          gradient.addColorStop(1, "rgba(255, 0, 255, 0)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(missile.x + 4, missile.y + 4, 8, 0, Math.PI * 2);
+          ctx.fill();
 
-          for (let row = 0; row < plasmaPattern.length; row++) {
-            for (let col = 0; col < plasmaPattern[row].length; col++) {
-              if (plasmaPattern[row][col] === 1) {
-                ctx.fillStyle = "#ff00ff";
-                ctx.fillRect(
-                  missile.x + col * pixelSize,
-                  missile.y + row * pixelSize,
-                  pixelSize,
-                  pixelSize
-                );
-              } else if (plasmaPattern[row][col] === 2) {
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(
-                  missile.x + col * pixelSize,
-                  missile.y + row * pixelSize,
-                  pixelSize,
-                  pixelSize
-                );
-              }
-            }
-          }
+          // 플라즈마 코어
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(missile.x + 4, missile.y + 4, 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 플라즈마 꼬리 효과
+          ctx.fillStyle = "rgba(255, 0, 255, 0.3)";
+          ctx.beginPath();
+          ctx.moveTo(missile.x + 4, missile.y + 4);
+          ctx.lineTo(missile.x + 4, missile.y + 20);
+          ctx.lineTo(missile.x + 8, missile.y + 20);
+          ctx.closePath();
+          ctx.fill();
         } else if (missile.type === "laser") {
-          // 레이저: 빨간색
+          // 레이저: 빨간색 빔 효과
+          const gradient = ctx.createLinearGradient(
+            missile.x,
+            missile.y,
+            missile.x,
+            missile.y + 12
+          );
+          gradient.addColorStop(0, "#ff0000");
+          gradient.addColorStop(0.5, "#ff6666");
+          gradient.addColorStop(1, "rgba(255, 0, 0, 0)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(missile.x, missile.y, 5, 12);
+
+          // 레이저 글로우 효과
+          ctx.shadowColor = "#ff0000";
+          ctx.shadowBlur = 10;
           ctx.fillStyle = "#ff0000";
-          const laserPattern = [
-            [0, 0, 1, 0, 0],
-            [0, 1, 2, 1, 0],
-            [1, 2, 2, 2, 1],
-            [1, 2, 2, 2, 1],
-            [1, 2, 2, 2, 1],
-            [0, 1, 2, 1, 0],
-            [0, 0, 1, 0, 0],
-          ];
-
-          for (let row = 0; row < laserPattern.length; row++) {
-            for (let col = 0; col < laserPattern[row].length; col++) {
-              if (laserPattern[row][col] === 1) {
-                ctx.fillStyle = "#ff0000";
-                ctx.fillRect(
-                  missile.x + col * pixelSize,
-                  missile.y + row * pixelSize,
-                  pixelSize,
-                  pixelSize
-                );
-              } else if (laserPattern[row][col] === 2) {
-                ctx.fillStyle = "#ffff00";
-                ctx.fillRect(
-                  missile.x + col * pixelSize,
-                  missile.y + row * pixelSize,
-                  pixelSize,
-                  pixelSize
-                );
-              }
-            }
-          }
+          ctx.fillRect(missile.x, missile.y, 5, 12);
+          ctx.shadowBlur = 0;
         } else {
-          // 일반 미사일: 시안색
-          ctx.fillStyle = "#00ffff";
-          const missilePattern = [
-            [0, 1, 0],
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-            [0, 1, 0],
-          ];
+          // 일반 미사일: 시안색 빔 효과
+          const gradient = ctx.createLinearGradient(
+            missile.x,
+            missile.y,
+            missile.x,
+            missile.y + 8
+          );
+          gradient.addColorStop(0, "#00ffff");
+          gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(missile.x, missile.y, 3, 8);
 
-          for (let row = 0; row < missilePattern.length; row++) {
-            for (let col = 0; col < missilePattern[row].length; col++) {
-              if (missilePattern[row][col] === 1) {
-                ctx.fillRect(
-                  missile.x + col * pixelSize,
-                  missile.y + row * pixelSize,
-                  pixelSize,
-                  pixelSize
-                );
-              }
-            }
-          }
+          // 미사일 글로우 효과
+          ctx.shadowColor = "#00ffff";
+          ctx.shadowBlur = 5;
+          ctx.fillStyle = "#00ffff";
+          ctx.fillRect(missile.x, missile.y, 3, 8);
+          ctx.shadowBlur = 0;
         }
       }
 
@@ -459,48 +437,101 @@
       // 운석 그리기 (도트 스타일)
       function drawMeteor(meteor) {
         const pixelSize = 2;
+
+        // 운석 글로우 효과
+        ctx.shadowColor = "#ff4444";
+        ctx.shadowBlur = 10;
+
+        // 운석 본체
         ctx.fillStyle = "#ff4444";
+        ctx.beginPath();
+        ctx.arc(meteor.x + 4, meteor.y + 4, 8, 0, Math.PI * 2);
+        ctx.fill();
 
-        // 운석 패턴
-        const meteorPattern = [
-          [0, 1, 1, 0],
-          [1, 1, 1, 1],
-          [1, 1, 1, 1],
-          [0, 1, 1, 0],
-        ];
-
-        for (let row = 0; row < meteorPattern.length; row++) {
-          for (let col = 0; col < meteorPattern[row].length; col++) {
-            if (meteorPattern[row][col] === 1) {
-              ctx.fillRect(
-                meteor.x + col * pixelSize,
-                meteor.y + row * pixelSize,
-                pixelSize,
-                pixelSize
-              );
-            }
-          }
+        // 운석 표면 패턴
+        ctx.fillStyle = "#ff6666";
+        for (let i = 0; i < 3; i++) {
+          const angle = ((Math.PI * 2) / 3) * i;
+          const x = meteor.x + 4 + Math.cos(angle) * 4;
+          const y = meteor.y + 4 + Math.sin(angle) * 4;
+          ctx.beginPath();
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
         }
+
+        // 운석 꼬리 효과
+        const gradient = ctx.createLinearGradient(
+          meteor.x + 4,
+          meteor.y + 4,
+          meteor.x + 4,
+          meteor.y + 20
+        );
+        gradient.addColorStop(0, "rgba(255, 68, 68, 0.8)");
+        gradient.addColorStop(1, "rgba(255, 68, 68, 0)");
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(meteor.x + 4, meteor.y + 4);
+        ctx.lineTo(meteor.x + 8, meteor.y + 20);
+        ctx.lineTo(meteor.x, meteor.y + 20);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
       }
 
       // 폭발 효과 그리기
       function drawExplosion(x, y) {
-        ctx.fillStyle = "#ffff00";
-        const explosionPattern = [
-          [0, 0, 1, 0, 0],
-          [0, 1, 1, 1, 0],
-          [1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 0],
-          [0, 0, 1, 0, 0],
-        ];
+        // 폭발 중심부
+        const gradient = ctx.createRadialGradient(
+          x + 5,
+          y + 5,
+          0,
+          x + 5,
+          y + 5,
+          15
+        );
+        gradient.addColorStop(0, "#ffffff");
+        gradient.addColorStop(0.3, "#ffff00");
+        gradient.addColorStop(0.7, "#ff6600");
+        gradient.addColorStop(1, "rgba(255, 0, 0, 0)");
 
-        for (let row = 0; row < explosionPattern.length; row++) {
-          for (let col = 0; col < explosionPattern[row].length; col++) {
-            if (explosionPattern[row][col] === 1) {
-              ctx.fillRect(x + col * 2, y + row * 2, 2, 2);
-            }
-          }
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x + 5, y + 5, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 폭발 파편 효과
+        for (let i = 0; i < 8; i++) {
+          const angle = ((Math.PI * 2) / 8) * i;
+          const length = 10 + Math.random() * 10;
+          const endX = x + 5 + Math.cos(angle) * length;
+          const endY = y + 5 + Math.sin(angle) * length;
+
+          const fragmentGradient = ctx.createLinearGradient(
+            x + 5,
+            y + 5,
+            endX,
+            endY
+          );
+          fragmentGradient.addColorStop(0, "#ffff00");
+          fragmentGradient.addColorStop(1, "rgba(255, 0, 0, 0)");
+
+          ctx.strokeStyle = fragmentGradient;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + 5, y + 5);
+          ctx.lineTo(endX, endY);
+          ctx.stroke();
         }
+
+        // 폭발 글로우 효과
+        ctx.shadowColor = "#ffff00";
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
+        ctx.beginPath();
+        ctx.arc(x + 5, y + 5, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
       }
 
       // 별 그리기 (배경)
